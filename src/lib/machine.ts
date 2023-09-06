@@ -93,6 +93,7 @@ export interface MachineConfig {
   // the key for each check is the check name
   // the value for each check supports:
   checks?: Record<string, HealthCheckConfig>
+  metadata?: Record<string, string>
 }
 
 export type ListMachineRequest = string
@@ -128,16 +129,33 @@ interface LaunchEvent extends BaseEvent {
   source: 'user'
 }
 
+export enum MachineState {
+  Created = 'created',
+  Starting = 'starting',
+  Started = 'started',
+  Stopping = 'stopping',
+  Stopped = 'stopped',
+  Replacing = 'replacing',
+  Destroying = 'destroying',
+  Destroyed = 'destroyed',
+}
+
 export interface MachineResponse {
   id: string
   name: string
-  state: 'started' | 'stopped' | 'destroyed'
+  state: MachineState
   region: string
   instance_id: string
   private_ip: string
   config: {
     env: Record<string, string>
-    init: {}
+    init: {
+      cmd?: string[]
+      entrypoint?: string[]
+      exec?: string[]
+      swap_size_mb?: number
+      tty?: boolean
+    }
     mounts: {
       encrypted: boolean
       path: string
@@ -148,7 +166,10 @@ export interface MachineResponse {
     services: ServiceConfig[]
     checks: Record<string, HealthCheckConfig>
     image: string
-    restart: {}
+    restart: {
+      max_retries?: number
+      policy?: string
+    }
     guest: {
       cpu_kind: 'shared'
       cpus: number
@@ -161,7 +182,7 @@ export interface MachineResponse {
     repository: string
     tag: string
     digest: string
-    labels?: string[]
+    labels: Record<string, string> | null
   }
   created_at: string
   updated_at: string
@@ -177,7 +198,7 @@ export interface MachineResponse {
 export const FLY_API_HOSTNAME =
   process.env.FLY_API_HOSTNAME || 'https://api.machines.dev'
 
-interface MachineRequest {
+export interface GetMachineRequest {
   appId: string
   machineId: string
 }
@@ -186,9 +207,12 @@ interface OkResponse {
   ok: boolean
 }
 
-export type DeleteMachineRequest = MachineRequest
+export interface DeleteMachineRequest extends GetMachineRequest {
+  // If true, the machine will be deleted even if it is in any other state than running.
+  force?: boolean
+}
 
-export interface StopMachineRequest extends MachineRequest {
+export interface StopMachineRequest extends GetMachineRequest {
   signal?:
     | 'SIGABRT'
     | 'SIGALRM'
@@ -202,9 +226,10 @@ export interface StopMachineRequest extends MachineRequest {
     | 'SIGTERM'
     | 'SIGTRAP'
     | 'SIGUSR1'
+  timeout?: string
 }
 
-export type StartMachineRequest = MachineRequest
+export type StartMachineRequest = GetMachineRequest
 
 export class Machine {
   private client: Client
@@ -214,30 +239,40 @@ export class Machine {
   }
 
   async listMachines(appId: ListMachineRequest): Promise<MachineResponse[]> {
-    return await this.client.restOrThrow({ appId, machineId: '' })
+    const path = `apps/${appId}/machines`
+    return await this.client.restOrThrow(path)
+  }
+
+  async getMachine(payload: StartMachineRequest): Promise<MachineResponse> {
+    const { appId, machineId } = payload
+    const path = `apps/${appId}/machines/${machineId}`
+    return await this.client.restOrThrow(path)
   }
 
   async startMachine(payload: StartMachineRequest): Promise<OkResponse> {
-    return await this.client.restOrThrow(
-      { ...payload, action: 'start' },
-      'POST'
-    )
+    const { appId, machineId } = payload
+    const path = `apps/${appId}/machines/${machineId}/start`
+    return await this.client.restOrThrow(path, 'POST')
   }
 
   async stopMachine(payload: StopMachineRequest): Promise<OkResponse> {
-    return await this.client.restOrThrow(
-      { ...payload, action: 'stop' },
-      'POST',
-      { signal: 'SIGTERM' }
-    )
+    const { appId, machineId, ...body } = payload
+    const path = `apps/${appId}/machines/${machineId}/stop`
+    return await this.client.restOrThrow(path, 'POST', {
+      signal: 'SIGTERM',
+      ...body,
+    })
   }
 
   async deleteMachine(payload: DeleteMachineRequest): Promise<OkResponse> {
-    return await this.client.restOrThrow(payload, 'DELETE')
+    const { appId, machineId } = payload
+    const path = `apps/${appId}/machines/${machineId}`
+    return await this.client.restOrThrow(path, 'DELETE')
   }
 
   async createMachine(payload: CreateMachineRequest): Promise<MachineResponse> {
     const { appId, ...body } = payload
-    return await this.client.restOrThrow({ appId, machineId: '' }, 'POST', body)
+    const path = `apps/${appId}/machines`
+    return await this.client.restOrThrow(path, 'POST', body)
   }
 }

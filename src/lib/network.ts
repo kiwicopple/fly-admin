@@ -17,13 +17,13 @@ export interface AllocateIPAddressInput {
 
 export interface AllocateIPAddressOutput {
   allocateIpAddress: {
-    ipAddress?: {
+    ipAddress: {
       id: string
       address: string
       type: AddressType
       region: string
       createdAt: string
-    }
+    } | null
   }
 }
 

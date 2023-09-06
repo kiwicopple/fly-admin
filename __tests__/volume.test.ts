@@ -2,12 +2,13 @@ import nock from 'nock'
 import { describe, it } from '@jest/globals'
 import { FLY_API_HOSTNAME } from '../src/client'
 import { createClient } from '../src/main'
+import { VolumeResponse } from '../src/lib/volume'
 
 const fly = createClient('test-token')
 
 describe('volume', () => {
   const appId = 'ctwntjgykzxhfncfwrfo'
-  const volume = {
+  const volume: VolumeResponse = {
     id: 'vol_0vdyzpeqgpzl383v',
     name: 'pgdata',
     state: 'created',
@@ -91,6 +92,26 @@ describe('volume', () => {
       })
     const data = await fly.Volume.createVolume({
       appId,
+      ...body,
+    })
+    console.dir(data, { depth: 5 })
+  })
+
+  it('extends volume', async () => {
+    const body = { size_gb: 4 }
+    const volumeId = volume.id
+    nock(FLY_API_HOSTNAME)
+      .put(`/v1/apps/${appId}/volumes/${volumeId}/extend`, body)
+      .reply(200, {
+        needs_restart: true,
+        volume: {
+          ...volume,
+          ...body,
+        },
+      })
+    const data = await fly.Volume.extendVolume({
+      appId,
+      volumeId,
       ...body,
     })
     console.dir(data, { depth: 5 })

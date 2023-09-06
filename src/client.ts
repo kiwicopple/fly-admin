@@ -25,13 +25,6 @@ interface GraphQLResponse<T> {
   }[]
 }
 
-interface PathParams {
-  appId?: string
-  machineId?: string
-  volumeId?: string
-  action?: 'start' | 'stop'
-}
-
 class Client {
   private graphqlUrl: string
   private apiUrl: string
@@ -95,20 +88,11 @@ class Client {
   }
 
   async restOrThrow<U, V>(
-    params: PathParams,
+    path: string,
     method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET',
     body?: U
   ): Promise<V> {
-    const { appId, machineId, volumeId, action } = params
-    let url = `${this.apiUrl}/v1`
-    if (appId !== undefined) url += '/apps'
-    if (appId) url += `/${appId}`
-    if (machineId !== undefined) url += '/machines'
-    if (machineId) url += `/${machineId}`
-    if (volumeId !== undefined) url += '/volumes'
-    if (volumeId) url += `/${volumeId}`
-    if (action) url += `/${action}`
-    const resp = await crossFetch(url, {
+    const resp = await crossFetch(`${this.apiUrl}/v1/${path}`, {
       method,
       headers: {
         Authorization: `Bearer ${this.apiKey}`,

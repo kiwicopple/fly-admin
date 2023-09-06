@@ -26,15 +26,30 @@ export interface VolumeResponse {
   region: string
   zone: string
   encrypted: boolean
-  attached_machine_id?: string
-  attached_alloc_id?: string
+  attached_machine_id: string | null
+  attached_alloc_id: string | null
   created_at: string
-  host_dedication_id: string
+  blocks: number
+  block_size: number
+  blocks_free: number
+  blocks_avail: number
+  fstype: string
+  host_dedication_key: string
 }
 
-export interface DeleteVolumeRequest {
+interface VolumeRequest {
   appId: string
   volumeId: string
+}
+export type DeleteVolumeRequest = VolumeRequest
+
+export interface ExtendVolumeRequest extends VolumeRequest {
+  size_gb: number
+}
+
+export interface ExtendVolumeResponse {
+  needs_restart: boolean
+  volume: VolumeResponse
 }
 
 export class Volume {
@@ -45,15 +60,27 @@ export class Volume {
   }
 
   async listVolumes(appId: ListVolumesRequest): Promise<VolumeResponse[]> {
-    return await this.client.restOrThrow({ appId, volumeId: '' })
+    const path = `apps/${appId}/volumes`
+    return await this.client.restOrThrow(path)
   }
 
   async createVolume(payload: CreateVolumeRequest): Promise<VolumeResponse> {
     const { appId, ...body } = payload
-    return await this.client.restOrThrow({ appId, volumeId: '' }, 'POST', body)
+    const path = `apps/${appId}/volumes`
+    return await this.client.restOrThrow(path, 'POST', body)
   }
 
   async deleteVolume(payload: DeleteVolumeRequest): Promise<VolumeResponse> {
-    return await this.client.restOrThrow(payload, 'DELETE')
+    const { appId, volumeId } = payload
+    const path = `apps/${appId}/volumes/${volumeId}`
+    return await this.client.restOrThrow(path, 'DELETE')
+  }
+
+  async extendVolume(
+    payload: ExtendVolumeRequest
+  ): Promise<ExtendVolumeResponse> {
+    const { appId, volumeId, ...body } = payload
+    const path = `apps/${appId}/volumes/${volumeId}/extend`
+    return await this.client.restOrThrow(path, 'PUT', body)
   }
 }

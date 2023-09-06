@@ -1,7 +1,11 @@
 import nock from 'nock'
 import { describe, it } from '@jest/globals'
-import { ConnectionHandler, MachineConfig } from '../src/lib/machine'
-
+import {
+  ConnectionHandler,
+  MachineConfig,
+  MachineResponse,
+  MachineState,
+} from '../src/lib/machine'
 import { FLY_API_HOSTNAME } from '../src/client'
 import { createClient } from '../src/main'
 
@@ -9,10 +13,10 @@ const fly = createClient('test-token')
 
 describe('machine', () => {
   const appId = 'ctwntjgykzxhfncfwrfo'
-  const machine = {
-    id: '9080e966ae7487',
+  const machine: MachineResponse = {
+    id: '17811953c92e18',
     name: 'ctwntjgykzxhfncfwrfo',
-    state: 'created',
+    state: MachineState.Created,
     region: 'hkg',
     instance_id: '01GSYXD50E7F114CX7SRCT2H41',
     private_ip: 'fdaa:1:698b:a7b:a8:33bd:e6da:2',
@@ -22,30 +26,48 @@ describe('machine', () => {
       image: 'sweatybridge/postgres:all-in-one',
       mounts: [
         {
+          encrypted: true,
           path: '/mnt/postgres',
           size_gb: 2,
           volume: 'vol_g67340kqe5pvydxw',
           name: 'ctwntjgykzxhfncfwrfo_pgdata',
         },
       ],
-      restart: {},
       services: [
         {
           protocol: 'tcp',
           internal_port: 8000,
           ports: [
-            { port: 443, handlers: ['tls', 'http'] },
-            { port: 80, handlers: ['http'] },
+            {
+              port: 443,
+              handlers: [ConnectionHandler.TLS, ConnectionHandler.HTTP],
+            },
+            { port: 80, handlers: [ConnectionHandler.HTTP] },
           ],
         },
         {
           protocol: 'tcp',
           internal_port: 5432,
-          ports: [{ port: 5432, handlers: ['pg_tls'] }],
+          ports: [
+            {
+              port: 5432,
+              handlers: [ConnectionHandler.PG_TLS],
+            },
+          ],
+          concurrency: {
+            type: 'connections',
+            hard_limit: 60,
+            soft_limit: 60,
+          },
         },
       ],
       size: 'shared-cpu-4x',
-      guest: { cpu_kind: 'shared', cpus: 4, memory_mb: 1024 },
+      restart: {},
+      guest: {
+        cpu_kind: 'shared',
+        cpus: 4,
+        memory_mb: 1024,
+      },
       checks: {
         pgrst: {
           port: 3000,
@@ -55,6 +77,12 @@ describe('machine', () => {
           method: 'HEAD',
           path: '/',
         },
+        adminapi: {
+          port: 8085,
+          type: 'tcp',
+          interval: '15s',
+          timeout: '10s',
+        },
       },
     },
     image_ref: {
@@ -63,11 +91,29 @@ describe('machine', () => {
       tag: 'all-in-one',
       digest:
         'sha256:df2014e5d037bf960a1240e300a913a97ef0d4486d22cbd1b7b92a7cbf487a7c',
-      labels: null,
+      labels: {
+        'org.opencontainers.image.ref.name': 'ubuntu',
+        'org.opencontainers.image.version': '20.04',
+      },
     },
     created_at: '2023-02-23T10:34:20Z',
     updated_at: '0001-01-01T00:00:00Z',
+    events: [
+      {
+        id: '01H28X6YMHE186D9R0BF4CB2ZH',
+        type: 'launch',
+        status: 'created',
+        source: 'user',
+        timestamp: 1686073735825,
+      },
+    ],
     checks: [
+      {
+        name: 'adminapi',
+        status: 'passing',
+        output: 'Success',
+        updated_at: '2023-08-22T23:54:06.176Z',
+      },
       {
         name: 'pgrst',
         status: 'warning',
@@ -184,6 +230,28 @@ describe('machine', () => {
       .get(`/v1/apps/${appId}/machines`)
       .reply(200, [machine])
     const data = await fly.Machine.listMachines(appId)
+    console.dir(data, { depth: 10 })
+  })
+
+  it('gets machines', async () => {
+    const machineId = machine.id
+    nock(FLY_API_HOSTNAME)
+      .get(`/v1/apps/${appId}/machines/${machineId}`)
+      .reply(200, {
+        ...machine,
+        state: MachineState.Started,
+        events: [
+          {
+            id: '01H28X7D7GGZFSQPZ7YWVG17RH',
+            type: 'start',
+            status: 'started',
+            source: 'flyd',
+            timestamp: 1686073750768,
+          },
+          ...machine.events,
+        ],
+      })
+    const data = await fly.Machine.getMachine({ appId, machineId })
     console.dir(data, { depth: 10 })
   })
 })
