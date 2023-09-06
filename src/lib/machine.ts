@@ -1,5 +1,4 @@
 import Client from '../client'
-import crossFetch from 'cross-fetch'
 
 export enum ConnectionHandler {
   // Convert TLS connection to unencrypted TCP
@@ -96,8 +95,11 @@ export interface MachineConfig {
   checks?: Record<string, HealthCheckConfig>
 }
 
+export type ListMachineRequest = string
+
 // Ref: https://fly.io/docs/machines/working-with-machines/#create-a-machine
 export interface CreateMachineRequest {
+  appId: string
   // Unique name for this machine. If omitted, one is generated for you.
   name?: string
   // The target region. Omitting this param launches in the same region as your WireGuard peer connection (somewhere near you).
@@ -184,9 +186,9 @@ interface OkResponse {
   ok: boolean
 }
 
-type DeleteMachineRequest = MachineRequest
+export type DeleteMachineRequest = MachineRequest
 
-interface StopMachineRequest extends MachineRequest {
+export interface StopMachineRequest extends MachineRequest {
   signal?:
     | 'SIGABRT'
     | 'SIGALRM'
@@ -202,7 +204,7 @@ interface StopMachineRequest extends MachineRequest {
     | 'SIGUSR1'
 }
 
-type StartMachineRequest = MachineRequest
+export type StartMachineRequest = MachineRequest
 
 export class Machine {
   private client: Client
@@ -211,101 +213,31 @@ export class Machine {
     this.client = client
   }
 
-  async listMachines(appId: string): Promise<MachineResponse[]> {
-    const token = this.client.getApiKey()
-    const url = this.client.getApiUrl()
-    const resp = await crossFetch(`${url}/v1/apps/${appId}/machines`, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    })
-    const text = await resp.text()
-    if (!resp.ok) {
-      throw new Error(`${resp.status}: ${text}`)
-    }
-    return JSON.parse(text)
+  async listMachines(appId: ListMachineRequest): Promise<MachineResponse[]> {
+    return await this.client.restOrThrow({ appId, machineId: '' })
   }
 
   async startMachine(payload: StartMachineRequest): Promise<OkResponse> {
-    const token = this.client.getApiKey()
-    const url = this.client.getApiUrl()
-    const resp = await crossFetch(
-      `${url}/v1/apps/${payload.appId}/machines/${payload.machineId}/start`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      }
+    return await this.client.restOrThrow(
+      { ...payload, action: 'start' },
+      'POST'
     )
-    const text = await resp.text()
-    if (!resp.ok) {
-      throw new Error(`${resp.status}: ${text}`)
-    }
-    return JSON.parse(text)
   }
 
   async stopMachine(payload: StopMachineRequest): Promise<OkResponse> {
-    const token = this.client.getApiKey()
-    const url = this.client.getApiUrl()
-    const resp = await crossFetch(
-      `${url}/v1/apps/${payload.appId}/machines/${payload.machineId}/stop`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ signal: 'SIGTERM', ...payload }),
-      }
+    return await this.client.restOrThrow(
+      { ...payload, action: 'stop' },
+      'POST',
+      { signal: 'SIGTERM' }
     )
-    const text = await resp.text()
-    if (!resp.ok) {
-      throw new Error(`${resp.status}: ${text}`)
-    }
-    return JSON.parse(text)
   }
 
   async deleteMachine(payload: DeleteMachineRequest): Promise<OkResponse> {
-    const token = this.client.getApiKey()
-    const url = this.client.getApiUrl()
-    const resp = await crossFetch(
-      `${url}/v1/apps/${payload.appId}/machines/${payload.machineId}`,
-      {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      }
-    )
-    const text = await resp.text()
-    if (!resp.ok) {
-      throw new Error(`${resp.status}: ${text}`)
-    }
-    return JSON.parse(text)
+    return await this.client.restOrThrow(payload, 'DELETE')
   }
 
   async createMachine(payload: CreateMachineRequest): Promise<MachineResponse> {
-    const token = this.client.getApiKey()
-    const url = this.client.getApiUrl()
-    const resp = await crossFetch(`${url}/v1/apps/${payload.name}/machines`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    })
-    const text = await resp.text()
-    if (!resp.ok) {
-      throw new Error(`${resp.status}: ${text}`)
-    }
-    return JSON.parse(text)
+    const { appId, ...body } = payload
+    return await this.client.restOrThrow({ appId, machineId: '' }, 'POST', body)
   }
 }

@@ -1,5 +1,7 @@
 import Client from '../client'
 
+export type GetOrganizationInput = string
+
 interface OrganizationResponse {
   id: string
   slug: string
@@ -8,7 +10,7 @@ interface OrganizationResponse {
   viewerRole: 'admin' | 'member'
 }
 
-interface GetOrganizationOutput {
+export interface GetOrganizationOutput {
   organization: OrganizationResponse
 }
 
@@ -29,7 +31,9 @@ export class Organization {
     this.client = client
   }
 
-  async getOrganization(slug: string): Promise<GetOrganizationOutput> {
+  async getOrganization(
+    slug: GetOrganizationInput
+  ): Promise<GetOrganizationOutput> {
     return this.client.gqlPostOrThrow({
       query: getOrganizationQuery,
       variables: { slug },

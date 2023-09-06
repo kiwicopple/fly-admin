@@ -8,6 +8,7 @@ import { createClient } from '../src/main'
 const fly = createClient('test-token')
 
 describe('machine', () => {
+  const appId = 'ctwntjgykzxhfncfwrfo'
   const machine = {
     id: '9080e966ae7487',
     name: 'ctwntjgykzxhfncfwrfo',
@@ -77,8 +78,6 @@ describe('machine', () => {
   }
 
   it('creates machine', async () => {
-    const name = 'ctwntjgykzxhfncfwrfo'
-    nock(FLY_API_HOSTNAME).post(`/v1/apps/${name}/machines`).reply(200, machine)
     const config: MachineConfig = {
       image: 'sweatybridge/postgres:all-in-one',
       size: 'shared-cpu-4x',
@@ -128,46 +127,59 @@ describe('machine', () => {
         },
       },
     }
-    const data = await fly.Machine.createMachine({ name, config })
+    nock(FLY_API_HOSTNAME)
+      .post(`/v1/apps/${appId}/machines`, {
+        name: machine.name,
+        config: config as any,
+      })
+      .reply(200, machine)
+    const data = await fly.Machine.createMachine({
+      appId,
+      name: machine.name,
+      config,
+    })
     console.dir(data, { depth: 10 })
   })
 
   it('deletes machine', async () => {
-    const appId = 'ctwntjgykzxhfncfwrfo'
-    const machineId = '4d891ed1b96987'
+    const machineId = machine.id
     nock(FLY_API_HOSTNAME)
       .delete(`/v1/apps/${appId}/machines/${machineId}`)
       .reply(200, { ok: true })
-    const data = await fly.Machine.deleteMachine({ appId, machineId })
+    const data = await fly.Machine.deleteMachine({
+      appId,
+      machineId,
+    })
     console.dir(data, { depth: 5 })
   })
 
   it('stops machine', async () => {
-    const appId = 'ctwntjgykzxhfncfwrfo'
-    const machineId = '9080e966ae2487'
+    const machineId = machine.id
     nock(FLY_API_HOSTNAME)
       .post(`/v1/apps/${appId}/machines/${machineId}/stop`, {
-        appId,
-        machineId,
         signal: 'SIGTERM',
       })
       .reply(200, { ok: true })
-    const data = await fly.Machine.stopMachine({ appId, machineId })
+    const data = await fly.Machine.stopMachine({
+      appId,
+      machineId,
+    })
     console.dir(data, { depth: 5 })
   })
 
   it('starts machine', async () => {
-    const appId = 'ctwntjgykzxhfncfwrfo'
-    const machineId = '9080e966ae2487'
+    const machineId = machine.id
     nock(FLY_API_HOSTNAME)
       .post(`/v1/apps/${appId}/machines/${machineId}/start`)
       .reply(200, { ok: true })
-    const data = await fly.Machine.startMachine({ appId, machineId })
+    const data = await fly.Machine.startMachine({
+      appId,
+      machineId,
+    })
     console.dir(data, { depth: 5 })
   })
 
   it('lists machines', async () => {
-    const appId = 'ctwntjgykzxhfncfwrfo'
     nock(FLY_API_HOSTNAME)
       .get(`/v1/apps/${appId}/machines`)
       .reply(200, [machine])

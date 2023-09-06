@@ -1,120 +1,41 @@
 import Client from '../client'
 
-export interface CreateVolumeInput {
+export type ListVolumesRequest = string
+
+// Ref: https://github.com/superfly/flyctl/blob/master/api/volume_types.go#L23
+export interface CreateVolumeRequest {
   appId: string
   name: string
   region: string
-  sizeGb: number
+  size_gb?: number
   encrypted?: boolean
-  requireUniqueZone?: boolean
-  snapshotId?: string
+  require_unique_zone?: boolean
+  machines_only?: boolean
+  // restore from snapshot
+  snapshot_id?: string
+  // fork from remote volume
+  source_volume_id?: string
 }
 
+// Ref: https://github.com/superfly/flyctl/blob/master/api/volume_types.go#L5
 export interface VolumeResponse {
   id: string
   name: string
-  app: {
-    name: string
-  }
+  state: string
+  size_gb: number
   region: string
-  sizeGb: number
+  zone: string
   encrypted: boolean
-  createdAt: string
-  host: {
-    id: string
-  }
+  attached_machine_id?: string
+  attached_alloc_id?: string
+  created_at: string
+  host_dedication_id: string
 }
 
-export interface CreateVolumeOutput {
-  createVolume: {
-    app: {
-      name: string
-    }
-    volume: VolumeResponse
-  }
-}
-
-const createVolumeQuery = `mutation($input: CreateVolumeInput!) {
-  createVolume(input: $input) {
-    app {
-      name
-    }
-    volume {
-      id
-      name
-      app{
-        name
-      }
-      region
-      sizeGb
-      encrypted
-      createdAt
-      host {
-        id
-      }
-    }
-  }
-}`
-
-export interface DeleteVolumeInput {
+export interface DeleteVolumeRequest {
+  appId: string
   volumeId: string
 }
-
-export interface DeleteVolumeOutput {
-  deleteVolume: {
-    app: {
-      name: string
-    }
-  }
-}
-
-const deleteVolumeQuery = `mutation($input: DeleteVolumeInput!) {
-  deleteVolume(input: $input) {
-    app {
-      name
-    }
-  }
-}`
-
-// Ref: https://github.com/superfly/flyctl/blob/master/api/resource_volumes.go#L155
-export interface ForkVolumeInput {
-  appId: string
-  sourceVolId: string
-  name?: string
-  machinesOnly?: boolean
-  lockId?: string
-}
-
-export interface ForkVolumeOutput {
-  forkVolume: {
-    app: {
-      name: string
-    }
-    volume: VolumeResponse
-  }
-}
-
-const forkVolumeQuery = `mutation($input: ForkVolumeInput!) {
-  forkVolume(input: $input) {
-    app {
-      name
-    }
-    volume {
-      id
-      name
-      app{
-        name
-      }
-      region
-      sizeGb
-      encrypted
-      createdAt
-      host {
-        id
-      }
-    }
-  }
-}`
 
 export class Volume {
   private client: Client
@@ -123,25 +44,16 @@ export class Volume {
     this.client = client
   }
 
-  // Ref: https://github.com/superfly/flyctl/blob/master/api/resource_volumes.go#L52
-  async createVolume(input: CreateVolumeInput): Promise<CreateVolumeOutput> {
-    return await this.client.gqlPostOrThrow({
-      query: createVolumeQuery,
-      variables: { input },
-    })
+  async listVolumes(appId: ListVolumesRequest): Promise<VolumeResponse[]> {
+    return await this.client.restOrThrow({ appId, volumeId: '' })
   }
 
-  async deleteVolume(input: DeleteVolumeInput): Promise<DeleteVolumeOutput> {
-    return await this.client.gqlPostOrThrow({
-      query: deleteVolumeQuery,
-      variables: { input },
-    })
+  async createVolume(payload: CreateVolumeRequest): Promise<VolumeResponse> {
+    const { appId, ...body } = payload
+    return await this.client.restOrThrow({ appId, volumeId: '' }, 'POST', body)
   }
 
-  async forkVolume(input: ForkVolumeInput): Promise<ForkVolumeOutput> {
-    return this.client.gqlPostOrThrow({
-      query: forkVolumeQuery,
-      variables: { input },
-    })
+  async deleteVolume(payload: DeleteVolumeRequest): Promise<VolumeResponse> {
+    return await this.client.restOrThrow(payload, 'DELETE')
   }
 }
