@@ -269,8 +269,9 @@ export class Machine {
   }
 
   async deleteMachine(payload: DeleteMachineRequest): Promise<OkResponse> {
-    const { appId, machineId } = payload
-    const path = `apps/${appId}/machines/${machineId}`
+    const { appId, machineId, force } = payload
+    const query = force ? '?kill=true' : ''
+    const path = `apps/${appId}/machines/${machineId}${query}`
     return await this.client.restOrThrow(path, 'DELETE')
   }
 
