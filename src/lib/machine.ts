@@ -231,6 +231,10 @@ export interface StopMachineRequest extends GetMachineRequest {
 
 export type StartMachineRequest = GetMachineRequest
 
+export interface UpdateMachineRequest extends GetMachineRequest {
+  config: MachineConfig
+}
+
 export class Machine {
   private client: Client
 
@@ -273,6 +277,12 @@ export class Machine {
   async createMachine(payload: CreateMachineRequest): Promise<MachineResponse> {
     const { appId, ...body } = payload
     const path = `apps/${appId}/machines`
+    return await this.client.restOrThrow(path, 'POST', body)
+  }
+
+  async updateMachine(payload: UpdateMachineRequest): Promise<MachineResponse> {
+    const { appId, machineId, ...body } = payload
+    const path = `apps/${appId}/machines/${machineId}`
     return await this.client.restOrThrow(path, 'POST', body)
   }
 }

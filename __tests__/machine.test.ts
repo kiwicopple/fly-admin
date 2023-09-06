@@ -187,6 +187,23 @@ describe('machine', () => {
     console.dir(data, { depth: 10 })
   })
 
+  it('updates machine', async () => {
+    const machineId = machine.id
+    const config = {
+      image: 'sweatybridge/postgres:all-in-one',
+      services: [],
+    }
+    nock(FLY_API_HOSTNAME)
+      .post(`/v1/apps/${appId}/machines/${machineId}`, { config })
+      .reply(200, machine)
+    const data = await fly.Machine.updateMachine({
+      appId,
+      machineId,
+      config,
+    })
+    console.dir(data, { depth: 5 })
+  })
+
   it('deletes machine', async () => {
     const machineId = machine.id
     nock(FLY_API_HOSTNAME)
