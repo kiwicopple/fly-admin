@@ -32,7 +32,9 @@ async function deployApp() {
 **Machines**
 
 - `fly.Machine.listMachines()`
+- `fly.Machine.getMachine()`
 - `fly.Machine.createMachine()`
+- `fly.Machine.updateMachine()`
 - `fly.Machine.startMachine()`
 - `fly.Machine.stopMachine()`
 - `fly.Machine.restartMachine()`
@@ -55,8 +57,10 @@ async function deployApp() {
 **Volumes**
 
 - `fly.Volume.listVolumes()`
+- `fly.Volume.getVolume()`
 - `fly.Volume.createVolume()`
 - `fly.Volume.deleteVolume()`
+- `fly.Volume.extendVolume()`
 
 ## License
 
