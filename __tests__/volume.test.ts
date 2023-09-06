@@ -45,6 +45,18 @@ describe('volume', () => {
     console.dir(data, { depth: 5 })
   })
 
+  it('gets volume', async () => {
+    const volumeId = volume.id
+    nock(FLY_API_HOSTNAME)
+      .get(`/v1/apps/${appId}/volumes/${volumeId}`)
+      .reply(200, volume)
+    const data = await fly.Volume.getVolume({
+      appId,
+      volumeId,
+    })
+    console.dir(data, { depth: 5 })
+  })
+
   it('creates volume', async () => {
     const body = {
       name: 'pgdata',

@@ -37,13 +37,14 @@ export interface VolumeResponse {
   host_dedication_key: string
 }
 
-interface VolumeRequest {
+export interface GetVolumeRequest {
   appId: string
   volumeId: string
 }
-export type DeleteVolumeRequest = VolumeRequest
 
-export interface ExtendVolumeRequest extends VolumeRequest {
+export type DeleteVolumeRequest = GetVolumeRequest
+
+export interface ExtendVolumeRequest extends GetVolumeRequest {
   size_gb: number
 }
 
@@ -61,6 +62,12 @@ export class Volume {
 
   async listVolumes(appId: ListVolumesRequest): Promise<VolumeResponse[]> {
     const path = `apps/${appId}/volumes`
+    return await this.client.restOrThrow(path)
+  }
+
+  async getVolume(payload: GetVolumeRequest): Promise<VolumeResponse> {
+    const { appId, volumeId } = payload
+    const path = `apps/${appId}/volumes/${volumeId}`
     return await this.client.restOrThrow(path)
   }
 
