@@ -25,6 +25,11 @@ interface GraphQLResponse<T> {
   }[]
 }
 
+interface ClientConfig {
+  graphqlUrl?: string
+  apiUrl?: string
+}
+
 class Client {
   private graphqlUrl: string
   private apiUrl: string
@@ -36,10 +41,7 @@ class Client {
   Secret: Secret
   Volume: Volume
 
-  constructor(
-    apiKey: string,
-    { graphqlUrl, apiUrl }: { graphqlUrl?: string; apiUrl?: string } = {}
-  ) {
+  constructor(apiKey: string, { graphqlUrl, apiUrl }: ClientConfig = {}) {
     if (!apiKey) {
       throw new Error('Fly API Key is required')
     }
@@ -104,7 +106,7 @@ class Client {
     if (!resp.ok) {
       throw new Error(`${resp.status}: ${text}`)
     }
-    return JSON.parse(text)
+    return text ? JSON.parse(text) : undefined
   }
 }
 

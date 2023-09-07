@@ -1,83 +1,61 @@
 import nock from 'nock'
 import { describe, it } from '@jest/globals'
-import { FLY_API_GRAPHQL } from '../src/client'
+import { FLY_API_HOSTNAME } from '../src/client'
 import { createClient } from '../src/main'
+import { AppResponse, AppStatus } from '../src/lib/app'
 
-const fly = createClient('test-token')
+const fly = createClient(process.env.FLY_API_TOKEN || 'test-token')
 
 describe('app', () => {
-  const organizationId = 'personal'
+  const app: AppResponse = {
+    name: 'fly-app',
+    status: AppStatus.deployed,
+    organization: {
+      name: 'fly-org',
+      slug: 'personal',
+    },
+  }
+
+  it('lists apps', async () => {
+    const org_slug = app.organization.slug
+    nock(FLY_API_HOSTNAME)
+      .get('/v1/apps')
+      .query({ org_slug })
+      .reply(200, {
+        total_apps: 1,
+        apps: [
+          {
+            name: app.name,
+            machine_count: 1,
+            network: 'default',
+          },
+        ],
+      })
+    const data = await fly.App.listApps(org_slug)
+    console.dir(data, { depth: 10 })
+  })
+
+  it('get app', async () => {
+    const app_name = app.name
+    nock(FLY_API_HOSTNAME).get(`/v1/apps/${app_name}`).reply(200, app)
+    const data = await fly.App.getApp(app_name)
+    console.dir(data, { depth: 10 })
+  })
 
   it('creates app', async () => {
-    nock(FLY_API_GRAPHQL)
-      .post('/graphql')
-      .reply(200, {
-        data: {
-          createApp: {
-            app: {
-              id: 'ctwntjgykzxhfncfwrfo',
-              name: 'ctwntjgykzxhfncfwrfo',
-              organization: { slug: 'supabase-dev' },
-              config: {
-                definition: {
-                  kill_timeout: 5,
-                  kill_signal: 'SIGINT',
-                  processes: [],
-                  experimental: { auto_rollback: true },
-                  services: [
-                    {
-                      processes: ['app'],
-                      protocol: 'tcp',
-                      internal_port: 8080,
-                      concurrency: {
-                        soft_limit: 20,
-                        hard_limit: 25,
-                        type: 'connections',
-                      },
-                      ports: [
-                        { port: 80, handlers: ['http'], force_https: true },
-                        { port: 443, handlers: ['tls', 'http'] },
-                      ],
-                      tcp_checks: [
-                        {
-                          interval: '15s',
-                          timeout: '2s',
-                          grace_period: '1s',
-                          restart_limit: 0,
-                        },
-                      ],
-                      http_checks: [],
-                      script_checks: [],
-                    },
-                  ],
-                  env: {},
-                },
-              },
-              regions: [{ name: 'Hong Kong, Hong Kong', code: 'hkg' }],
-            },
-          },
-        },
-      })
-    const data = await fly.App.createApp({
-      name: 'ctwntjgykzxhfncfwrfo',
-      organizationId,
-    })
+    const body = {
+      org_slug: app.organization.slug,
+      app_name: app.name,
+    }
+    nock(FLY_API_HOSTNAME).post('/v1/apps', body).reply(201)
+    const data = await fly.App.createApp(body)
     console.dir(data, { depth: 10 })
   })
 
   it('deletes app', async () => {
-    nock(FLY_API_GRAPHQL)
-      .post('/graphql')
-      .reply(200, {
-        data: {
-          deleteApp: {
-            organization: {
-              id: organizationId,
-            },
-          },
-        },
-      })
-    const data = await fly.App.deleteApp('ctwntjgykzxhfncfwrfo')
+    const app_name = app.name
+    nock(FLY_API_HOSTNAME).delete(`/v1/apps/${app_name}`).reply(202)
+    const data = await fly.App.deleteApp(app_name)
     console.dir(data, { depth: 10 })
   })
 })

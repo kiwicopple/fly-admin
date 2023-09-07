@@ -1,76 +1,40 @@
 import Client from '../client'
 
-export interface CreateAppInput {
-  organizationId: string
-  name?: string
-  preferredRegion?: string
+export type ListAppRequest = string
+
+export interface ListAppResponse {
+  total_apps: number
+  apps: {
+    name: string
+    machine_count: number
+    network: string
+  }[]
+}
+
+export type GetAppRequest = string
+
+export enum AppStatus {
+  deployed = 'deployed',
+  pending = 'pending',
+  suspended = 'suspended',
+}
+
+export interface AppResponse {
+  name: string
+  status: AppStatus
+  organization: {
+    name: string
+    slug: string
+  }
+}
+
+export interface CreateAppRequest {
+  org_slug: string
+  app_name: string
   network?: string
 }
 
-export interface CreateAppOutput {
-  createApp: {
-    app: {
-      id: string
-      name: string
-      organization: {
-        slug: string
-      }
-      config: {
-        definition: {
-          kill_timeout: number
-          kill_signal: string
-          processes: any[]
-          experimental: {
-            auto_rollback: boolean
-          }
-          services: any[]
-          env: Record<string, string>
-        }
-      }
-      regions: {
-        name: string
-        code: string
-      }[]
-    }
-  }
-}
-
-const createAppQuery = `mutation($input: CreateAppInput!) {
-  createApp(input: $input) {
-    app {
-      id
-      name
-      organization {
-        slug
-      }
-      config {
-        definition
-      }
-      regions {
-        name
-        code
-      }
-    }
-  }
-}`
-
-export type DeleteAppInput = string
-
-export interface DeleteAppOutput {
-  deleteApp: {
-    organization: {
-      id: string
-    }
-  }
-}
-
-const deleteAppQuery = `mutation($appId: ID!) {
-  deleteApp(appId: $appId) {
-    organization {
-      id
-    }
-  }
-}`
+export type DeleteAppRequest = string
 
 export class App {
   private client: Client
@@ -79,18 +43,23 @@ export class App {
     this.client = client
   }
 
-  async deleteApp(appId: DeleteAppInput): Promise<DeleteAppOutput> {
-    return await this.client.gqlPostOrThrow({
-      query: deleteAppQuery,
-      variables: { appId },
-    })
+  async listApps(org_slug: ListAppRequest): Promise<ListAppResponse> {
+    const path = `apps?org_slug=${org_slug}`
+    return await this.client.restOrThrow(path)
   }
 
-  // Ref: https://github.com/superfly/flyctl/blob/master/api/resource_apps.go#L329
-  async createApp(input: CreateAppInput): Promise<CreateAppOutput> {
-    return await this.client.gqlPostOrThrow({
-      query: createAppQuery,
-      variables: { input },
-    })
+  async getApp(app_name: GetAppRequest): Promise<AppResponse> {
+    const path = `apps/${app_name}`
+    return await this.client.restOrThrow(path)
+  }
+
+  async createApp(payload: CreateAppRequest): Promise<void> {
+    const path = 'apps'
+    return await this.client.restOrThrow(path, 'POST', payload)
+  }
+
+  async deleteApp(app_name: DeleteAppRequest): Promise<void> {
+    const path = `apps/${app_name}`
+    return await this.client.restOrThrow(path, 'DELETE')
   }
 }

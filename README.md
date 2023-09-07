@@ -37,8 +37,17 @@ async function deployApp() {
 - `fly.Machine.updateMachine()`
 - `fly.Machine.startMachine()`
 - `fly.Machine.stopMachine()`
-- `fly.Machine.restartMachine()`
 - `fly.Machine.deleteMachine()`
+- `fly.Machine.restartMachine()`
+- `fly.Machine.signalMachine()`
+- `fly.Machine.waitMachine()`
+- `fly.Machine.cordonMachine()`
+- `fly.Machine.uncordonMachine()`
+- `fly.Machine.listEvents()`
+- `fly.Machine.listVersions()`
+- `fly.Machine.listProcesses()`
+- `fly.Machine.getLease()`
+- `fly.Machine.acquireLease()`
 
 **Networks**
 
@@ -61,6 +70,15 @@ async function deployApp() {
 - `fly.Volume.createVolume()`
 - `fly.Volume.deleteVolume()`
 - `fly.Volume.extendVolume()`
+- `fly.Volume.listSnapshots()`
+
+**TODO**
+
+- [ ] `fly.Machine.execMachine()`
+- [ ] `fly.Machine.releaseLease()`
+- [ ] `fly.Machine.getMetadata()`
+- [ ] `fly.Machine.updateMetadata()`
+- [ ] `fly.Machine.deleteMetadata()`
 
 ## License
 

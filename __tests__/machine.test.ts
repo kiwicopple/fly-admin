@@ -8,11 +8,12 @@ import {
 } from '../src/lib/machine'
 import { FLY_API_HOSTNAME } from '../src/client'
 import { createClient } from '../src/main'
+import { SignalRequestSignalEnum, StateEnum } from '../src/lib/types'
 
-const fly = createClient('test-token')
+const fly = createClient(process.env.FLY_API_TOKEN || 'test-token')
 
 describe('machine', () => {
-  const appId = 'ctwntjgykzxhfncfwrfo'
+  const app_name = 'ctwntjgykzxhfncfwrfo'
   const machine: MachineResponse = {
     id: '17811953c92e18',
     name: 'ctwntjgykzxhfncfwrfo',
@@ -174,13 +175,13 @@ describe('machine', () => {
       },
     }
     nock(FLY_API_HOSTNAME)
-      .post(`/v1/apps/${appId}/machines`, {
+      .post(`/v1/apps/${app_name}/machines`, {
         name: machine.name,
         config: config as any,
       })
       .reply(200, machine)
     const data = await fly.Machine.createMachine({
-      appId,
+      app_name,
       name: machine.name,
       config,
     })
@@ -188,72 +189,72 @@ describe('machine', () => {
   })
 
   it('updates machine', async () => {
-    const machineId = machine.id
+    const machine_id = machine.id
     const config = {
       image: 'sweatybridge/postgres:all-in-one',
       services: [],
     }
     nock(FLY_API_HOSTNAME)
-      .post(`/v1/apps/${appId}/machines/${machineId}`, { config })
+      .post(`/v1/apps/${app_name}/machines/${machine_id}`, { config })
       .reply(200, machine)
     const data = await fly.Machine.updateMachine({
-      appId,
-      machineId,
+      app_name,
+      machine_id,
       config,
     })
     console.dir(data, { depth: 5 })
   })
 
   it('deletes machine', async () => {
-    const machineId = machine.id
+    const machine_id = machine.id
     nock(FLY_API_HOSTNAME)
-      .delete(`/v1/apps/${appId}/machines/${machineId}`)
+      .delete(`/v1/apps/${app_name}/machines/${machine_id}`)
       .reply(200, { ok: true })
     const data = await fly.Machine.deleteMachine({
-      appId,
-      machineId,
+      app_name,
+      machine_id,
     })
     console.dir(data, { depth: 5 })
   })
 
   it('stops machine', async () => {
-    const machineId = machine.id
+    const machine_id = machine.id
     nock(FLY_API_HOSTNAME)
-      .post(`/v1/apps/${appId}/machines/${machineId}/stop`, {
+      .post(`/v1/apps/${app_name}/machines/${machine_id}/stop`, {
         signal: 'SIGTERM',
       })
       .reply(200, { ok: true })
     const data = await fly.Machine.stopMachine({
-      appId,
-      machineId,
+      app_name,
+      machine_id,
     })
     console.dir(data, { depth: 5 })
   })
 
   it('starts machine', async () => {
-    const machineId = machine.id
+    const machine_id = machine.id
     nock(FLY_API_HOSTNAME)
-      .post(`/v1/apps/${appId}/machines/${machineId}/start`)
+      .post(`/v1/apps/${app_name}/machines/${machine_id}/start`)
       .reply(200, { ok: true })
     const data = await fly.Machine.startMachine({
-      appId,
-      machineId,
+      app_name,
+      machine_id,
     })
     console.dir(data, { depth: 5 })
   })
 
   it('lists machines', async () => {
     nock(FLY_API_HOSTNAME)
-      .get(`/v1/apps/${appId}/machines`)
+      .get(`/v1/apps/${app_name}/machines`)
       .reply(200, [machine])
-    const data = await fly.Machine.listMachines(appId)
+    const data = await fly.Machine.listMachines(app_name)
     console.dir(data, { depth: 10 })
   })
 
-  it('gets machines', async () => {
-    const machineId = machine.id
+  it('gets machine', async () => {
+    const machine_id = machine.id
     nock(FLY_API_HOSTNAME)
-      .get(`/v1/apps/${appId}/machines/${machineId}`)
+      .get(`/v1/apps/${app_name}/machines/${machine_id}`)
       .reply(200, {
         ...machine,
         state: MachineState.Started,
@@ -268,7 +269,203 @@ describe('machine', () => {
           ...machine.events,
         ],
       })
-    const data = await fly.Machine.getMachine({ appId, machineId })
+    const data = await fly.Machine.getMachine({
+      app_name,
+      machine_id,
+    })
+    console.dir(data, { depth: 10 })
+  })
+
+  it('restarts machine', async () => {
+    const machine_id = machine.id
+    nock(FLY_API_HOSTNAME)
+      .post(`/v1/apps/${app_name}/machines/${machine_id}/restart`)
+      .reply(200, { ok: true })
+    const data = await fly.Machine.restartMachine({
+      app_name,
+      machine_id,
+    })
+    console.dir(data, { depth: 10 })
+  })
+
+  it('signals machine', async () => {
+    const machine_id = machine.id
+    const signal = SignalRequestSignalEnum.SIGHUP
+    nock(FLY_API_HOSTNAME)
+      .post(`/v1/apps/${app_name}/machines/${machine_id}/signal`, { signal })
+      .reply(200, { ok: true })
+    const data = await fly.Machine.signalMachine({
+      app_name,
+      machine_id,
+      signal,
+    })
+    console.dir(data, { depth: 10 })
+  })
+
+  it('waits machine', async () => {
+    const machine_id = machine.id
+    const state = StateEnum.Started
+    nock(FLY_API_HOSTNAME)
+      .get(`/v1/apps/${app_name}/machines/${machine_id}/wait`)
+      .query({ state })
+      .reply(200, { ok: true })
+    const data = await fly.Machine.waitMachine({
+      app_name,
+      machine_id,
+      state,
+    })
+    console.dir(data, { depth: 10 })
+  })
+
+  it('lists events', async () => {
+    const machine_id = machine.id
+    nock(FLY_API_HOSTNAME)
+      .get(`/v1/apps/${app_name}/machines/${machine_id}/events`)
+      .reply(200, [
+        {
+          id: '01H9QFJCZ03MEGZKYPYY4ZSTTS',
+          type: 'exit',
+          status: 'stopped',
+          request: {
+            exit_event: {
+              requested_stop: true,
+              restarting: false,
+              guest_exit_code: 0,
+              guest_signal: -1,
+              guest_error: '',
+              exit_code: 143,
+              signal: -1,
+              error: '',
+              oom_killed: false,
+              exited_at: '2023-09-07T09:28:59.832Z',
+            },
+            restart_count: 0,
+          },
+          source: 'flyd',
+          timestamp: 1694078940128,
+        },
+      ])
+    const data = await fly.Machine.listEvents({
+      app_name,
+      machine_id,
+    })
+    console.dir(data, { depth: 10 })
+  })
+
+  it('lists versions', async () => {
+    const machine_id = machine.id
+    nock(FLY_API_HOSTNAME)
+      .get(`/v1/apps/${app_name}/machines/${machine_id}/versions`)
+      .reply(200, [
+        {
+          version: '01H28X6YK062GWVQHQ6CF8FG5S',
+          user_config: machine.config,
+        },
+      ])
+    const data = await fly.Machine.listVersions({
+      app_name,
+      machine_id,
+    })
+    console.dir(data, { depth: 10 })
+  })
+
+  it('lists processes', async () => {
+    const machine_id = machine.id
+    nock(FLY_API_HOSTNAME)
+      .get(`/v1/apps/${app_name}/machines/${machine_id}/ps`)
+      .reply(200, [
+        {
+          pid: 713,
+          stime: 2,
+          rtime: 847,
+          command: 'nginx: worker process',
+          directory: '/',
+          cpu: 0,
+          rss: 97005568,
+          listen_sockets: [
+            { proto: 'tcp', address: '0.0.0.0:8000' },
+            { proto: 'tcp', address: '0.0.0.0:8443' },
+          ],
+        },
+      ])
+    const data = await fly.Machine.listProcesses({
+      app_name,
+      machine_id,
+    })
+    console.dir(data, { depth: 10 })
+  })
+
+  it('gets lease', async () => {
+    const machine_id = machine.id
+    nock(FLY_API_HOSTNAME)
+      .get(`/v1/apps/${app_name}/machines/${machine_id}/lease`)
+      .reply(200, {
+        status: 'success',
+        data: {
+          nonce: '45b8f9200c72',
+          expires_at: 1694080223,
+          owner: 'example@fly.io',
+          description: '',
+        },
+      })
+    const data = await fly.Machine.getLease({
+      app_name,
+      machine_id,
+    })
+    console.dir(data, { depth: 10 })
+  })
+
+  it('acquires lease', async () => {
+    const body = { ttl: 60 }
+    const machine_id = machine.id
+    nock(FLY_API_HOSTNAME)
+      .post(`/v1/apps/${app_name}/machines/${machine_id}/lease`, body)
+      .reply(200, {
+        status: 'success',
+        data: {
+          nonce: '45b8f9200c72',
+          expires_at: 1694080223,
+          owner: 'example@fly.io',
+          description: '',
+        },
+      })
+    const data = await fly.Machine.acquireLease({
+      app_name,
+      machine_id,
+      ...body,
+    })
+    console.dir(data, { depth: 10 })
+  })
+
+  it('cordons machine', async () => {
+    const machine_id = machine.id
+    nock(FLY_API_HOSTNAME)
+      .post(`/v1/apps/${app_name}/machines/${machine_id}/cordon`)
+      .reply(200, {
+        status: 'success',
+        data: {
+          nonce: '45b8f9200c72',
+          expires_at: 1694080223,
+          owner: 'example@fly.io',
+          description: '',
+        },
+      })
+    const data = await fly.Machine.cordonMachine({
+      app_name,
+      machine_id,
+    })
+    console.dir(data, { depth: 10 })
+  })
+
+  it('uncordons machine', async () => {
+    const machine_id = machine.id
+    nock(FLY_API_HOSTNAME)
+      .post(`/v1/apps/${app_name}/machines/${machine_id}/uncordon`)
+      .reply(200, { ok: true })
+    const data = await fly.Machine.uncordonMachine({
+      app_name,
+      machine_id,
+    })
     console.dir(data, { depth: 10 })
   })
 })
