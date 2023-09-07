@@ -4,10 +4,10 @@ import { FLY_API_HOSTNAME } from '../src/client'
 import { createClient } from '../src/main'
 import { VolumeResponse } from '../src/lib/volume'
 
-const fly = createClient('test-token')
+const fly = createClient(process.env.FLY_API_TOKEN || 'test-token')
 
 describe('volume', () => {
-  const appId = 'ctwntjgykzxhfncfwrfo'
+  const app_name = 'ctwntjgykzxhfncfwrfo'
   const volume: VolumeResponse = {
     id: 'vol_0vdyzpeqgpzl383v',
     name: 'pgdata',
@@ -29,7 +29,7 @@ describe('volume', () => {
 
   it('lists volumes', async () => {
     nock(FLY_API_HOSTNAME)
-      .get(`/v1/apps/${appId}/volumes`)
+      .get(`/v1/apps/${app_name}/volumes`)
       .reply(200, [
         {
           ...volume,
@@ -41,18 +41,18 @@ describe('volume', () => {
           fstype: 'ext4',
         },
       ])
-    const data = await fly.Volume.listVolumes(appId)
+    const data = await fly.Volume.listVolumes(app_name)
     console.dir(data, { depth: 5 })
   })
 
   it('gets volume', async () => {
-    const volumeId = volume.id
+    const volume_id = volume.id
     nock(FLY_API_HOSTNAME)
-      .get(`/v1/apps/${appId}/volumes/${volumeId}`)
+      .get(`/v1/apps/${app_name}/volumes/${volume_id}`)
       .reply(200, volume)
     const data = await fly.Volume.getVolume({
-      appId,
-      volumeId,
+      app_name,
+      volume_id,
     })
     console.dir(data, { depth: 5 })
   })
@@ -64,26 +64,26 @@ describe('volume', () => {
       size_gb: 2,
     }
     nock(FLY_API_HOSTNAME)
-      .post(`/v1/apps/${appId}/volumes`, body)
+      .post(`/v1/apps/${app_name}/volumes`, body)
       .reply(200, volume)
     const data = await fly.Volume.createVolume({
-      appId,
+      app_name,
       ...body,
     })
     console.dir(data, { depth: 5 })
   })
 
   it('deletes volume', async () => {
-    const volumeId = volume.id
+    const volume_id = volume.id
     nock(FLY_API_HOSTNAME)
-      .delete(`/v1/apps/${appId}/volumes/${volumeId}`)
+      .delete(`/v1/apps/${app_name}/volumes/${volume_id}`)
       .reply(200, {
         ...volume,
         state: 'destroyed',
       })
     const data = await fly.Volume.deleteVolume({
-      appId,
-      volumeId,
+      app_name,
+      volume_id,
     })
     console.dir(data, { depth: 5 })
   })
@@ -95,7 +95,7 @@ describe('volume', () => {
       source_volume_id: volume.id,
     }
     nock(FLY_API_HOSTNAME)
-      .post(`/v1/apps/${appId}/volumes`, body)
+      .post(`/v1/apps/${app_name}/volumes`, body)
       .reply(200, {
         ...volume,
         id: 'vol_5456e1j33p16378r',
@@ -103,7 +103,7 @@ describe('volume', () => {
         state: 'hydrating',
       })
     const data = await fly.Volume.createVolume({
-      appId,
+      app_name,
       ...body,
     })
     console.dir(data, { depth: 5 })
@@ -111,9 +111,9 @@ describe('volume', () => {
 
   it('extends volume', async () => {
     const body = { size_gb: 4 }
-    const volumeId = volume.id
+    const volume_id = volume.id
     nock(FLY_API_HOSTNAME)
-      .put(`/v1/apps/${appId}/volumes/${volumeId}/extend`, body)
+      .put(`/v1/apps/${app_name}/volumes/${volume_id}/extend`, body)
       .reply(200, {
         needs_restart: true,
         volume: {
@@ -122,9 +122,21 @@ describe('volume', () => {
         },
       })
     const data = await fly.Volume.extendVolume({
-      appId,
-      volumeId,
+      app_name,
+      volume_id,
       ...body,
+    })
+    console.dir(data, { depth: 5 })
+  })
+
+  it('lists snapshots', async () => {
+    const volume_id = volume.id
+    nock(FLY_API_HOSTNAME)
+      .get(`/v1/apps/${app_name}/volumes/${volume_id}/snapshots`)
+      .reply(200, [])
+    const data = await fly.Volume.listSnapshots({
+      app_name,
+      volume_id,
     })
     console.dir(data, { depth: 5 })
   })

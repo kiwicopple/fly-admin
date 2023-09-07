@@ -1,20 +1,13 @@
 import Client from '../client'
+import { CreateVolumeRequest as ApiCreateVolumeRequest } from './types'
 
 export type ListVolumesRequest = string
 
 // Ref: https://github.com/superfly/flyctl/blob/master/api/volume_types.go#L23
-export interface CreateVolumeRequest {
-  appId: string
+export interface CreateVolumeRequest extends ApiCreateVolumeRequest {
+  app_name: string
   name: string
   region: string
-  size_gb?: number
-  encrypted?: boolean
-  require_unique_zone?: boolean
-  machines_only?: boolean
-  // restore from snapshot
-  snapshot_id?: string
-  // fork from remote volume
-  source_volume_id?: string
 }
 
 // Ref: https://github.com/superfly/flyctl/blob/master/api/volume_types.go#L5
@@ -38,8 +31,8 @@ export interface VolumeResponse {
 }
 
 export interface GetVolumeRequest {
-  appId: string
-  volumeId: string
+  app_name: string
+  volume_id: string
 }
 
 export type DeleteVolumeRequest = GetVolumeRequest
@@ -53,6 +46,15 @@ export interface ExtendVolumeResponse {
   volume: VolumeResponse
 }
 
+export type ListSnapshotsRequest = GetVolumeRequest
+
+export interface SnapshotResponse {
+  id: string
+  created_at: string
+  digest: string
+  size: number
+}
+
 export class Volume {
   private client: Client
 
@@ -60,34 +62,42 @@ export class Volume {
     this.client = client
   }
 
-  async listVolumes(appId: ListVolumesRequest): Promise<VolumeResponse[]> {
-    const path = `apps/${appId}/volumes`
+  async listVolumes(app_name: ListVolumesRequest): Promise<VolumeResponse[]> {
+    const path = `apps/${app_name}/volumes`
     return await this.client.restOrThrow(path)
   }
 
   async getVolume(payload: GetVolumeRequest): Promise<VolumeResponse> {
-    const { appId, volumeId } = payload
-    const path = `apps/${appId}/volumes/${volumeId}`
+    const { app_name, volume_id } = payload
+    const path = `apps/${app_name}/volumes/${volume_id}`
     return await this.client.restOrThrow(path)
   }
 
   async createVolume(payload: CreateVolumeRequest): Promise<VolumeResponse> {
-    const { appId, ...body } = payload
-    const path = `apps/${appId}/volumes`
+    const { app_name, ...body } = payload
+    const path = `apps/${app_name}/volumes`
     return await this.client.restOrThrow(path, 'POST', body)
   }
 
   async deleteVolume(payload: DeleteVolumeRequest): Promise<VolumeResponse> {
-    const { appId, volumeId } = payload
-    const path = `apps/${appId}/volumes/${volumeId}`
+    const { app_name, volume_id } = payload
+    const path = `apps/${app_name}/volumes/${volume_id}`
     return await this.client.restOrThrow(path, 'DELETE')
   }
 
   async extendVolume(
     payload: ExtendVolumeRequest
   ): Promise<ExtendVolumeResponse> {
-    const { appId, volumeId, ...body } = payload
-    const path = `apps/${appId}/volumes/${volumeId}/extend`
+    const { app_name, volume_id, ...body } = payload
+    const path = `apps/${app_name}/volumes/${volume_id}/extend`
     return await this.client.restOrThrow(path, 'PUT', body)
+  }
+
+  async listSnapshots(
+    payload: ListSnapshotsRequest
+  ): Promise<SnapshotResponse> {
+    const { app_name, volume_id } = payload
+    const path = `apps/${app_name}/volumes/${volume_id}/snapshots`
+    return await this.client.restOrThrow(path)
   }
 }

@@ -3,7 +3,7 @@ import { describe, it } from '@jest/globals'
 import { FLY_API_GRAPHQL } from '../src/client'
 import { createClient } from '../src/main'
 
-const fly = createClient('test-token')
+const fly = createClient(process.env.FLY_API_TOKEN || 'test-token')
 
 describe('secret', () => {
   it('sets secret', async () => {

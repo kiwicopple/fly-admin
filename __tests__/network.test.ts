@@ -4,7 +4,7 @@ import { AddressType } from '../src/lib/network'
 import { FLY_API_GRAPHQL } from '../src/client'
 import { createClient } from '../src/main'
 
-const fly = createClient('test-token')
+const fly = createClient(process.env.FLY_API_TOKEN || 'test-token')
 
 describe('network', () => {
   it('allocates ip address', async () => {
