@@ -255,9 +255,14 @@ export interface ProcessResponse {
 
 export interface WaitMachineRequest extends GetMachineRequest {
   instance_id?: string
-  // Default timeout is 60s
+  // Default timeout is 60 (seconds)
   timeout?: string
   state?: ApiMachineState
+}
+
+export interface WaitMachineStopRequest extends WaitMachineRequest {
+  instance_id: string
+  state?: ApiMachineState.Stopped
 }
 
 export interface MachineVersionResponse {
@@ -389,6 +394,8 @@ export class Machine {
   async waitMachine(payload: WaitMachineRequest): Promise<OkResponse> {
     const { app_name, machine_id, ...params } = payload
     let path = `apps/${app_name}/machines/${machine_id}/wait`
+    if (params.timeout?.endsWith('s'))
+      params.timeout = params.timeout.slice(0, -1)
     const query = new URLSearchParams(params).toString()
     if (query) path += `?${query}`
     return await this.client.restOrThrow(path)
