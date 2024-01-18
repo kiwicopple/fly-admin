@@ -26,6 +26,10 @@ export interface AppResponse {
     name: string
     slug: string
   }
+  ipAddresses: {
+    type: string
+    address: string
+  }[]
 }
 
 export interface CreateAppRequest {

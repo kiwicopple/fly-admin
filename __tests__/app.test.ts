@@ -14,6 +14,16 @@ describe('app', () => {
       name: 'fly-org',
       slug: 'personal',
     },
+    ipAddresses: [
+      {
+        type: 'v4',
+        address: '1.1.1.1'
+      },
+      {
+        type: 'v6',
+        address: '2001:db8::1'
+      }
+    ]
   }
 
   it('lists apps', async () => {
