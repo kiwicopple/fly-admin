@@ -1,47 +1,89 @@
-# :gear: Supabase Preview Deploy Action
+# `fly-admin`
 
-![](https://github.com/sweatybridge/fly-preview/workflows/build-test/badge.svg)
-![](https://github.com/sweatybridge/fly-preview/workflows/CodeQL/badge.svg)
+A Typescript client for managing Fly infrastructure.
 
-## About
+## Install
 
-This action deploys a Supabase Preview branch on Fly infrastructure.
-
-> :warning: **Experimental**: This action is a WIP and may be deprecated in the future. Use at your own risk.
+```bash
+npm i --save fly-admin
+```
 
 ## Usage
 
-Setup this action and `supabase` CLI
+```ts
+import { createClient } from 'fly-admin'
 
-```yaml
-steps:
-  - uses: supabase/setup-cli@v1
-    with:
-      version: latest
-  # We use sed to replace quotes, ie. key="value", to avoid double escaping env var.
-  - run: supabase gen keys --project-ref <ref> --experimental | sed -E 's|^(.*)="(.*)"$|\1=\2|g' >> "$GITHUB_ENV"
-    env:
-      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-  - uses: supabase/fly-preview@main
+const fly = createClient('FLY_API_TOKEN')
+
+async function deployApp() {
+  const machine = await fly.Machine.createMachine({
+    app_name: 'myAppId',
+    image: 'supabase/postgres',
+  })
+}
 ```
 
-Connect locally to your preview branch
+## API
 
-```bash
-supabase link --project-ref <ref>
-supabase start --preview
-```
+**Apps**
 
-## Inputs
+- `fly.App.listApps()`
+- `fly.App.getApp()`
+- `fly.App.getAppDetailed()`
+- `fly.App.createApp()`
+- `fly.App.deleteApp()`
 
-The actions supports the following environment variable as inputs:
+**Machines**
 
-| Name                             | Type   | Description                         | Default    | Required |
-| -------------------------------- | ------ | ----------------------------------- | ---------- | -------- |
-| `FLY_API_TOKEN`                  | String | API token to your Fly account       |            | true     |
-| `NEXT_PUBLIC_SUPABASE_URL`       | String | Fly app hostname, ie. `*.fly.dev`   |            | true     |
-| `FLY_ORGANIZATION_SLUG`          | String | Fly organization slug to deploy to  | `personal` | false    |
-| `SUPABASE_DB_PASSWORD`           | String | Postgres role password              | `postgres` | false    |
-| `SUPABASE_AUTH_JWT_SECRET`       | String | JWT secret for GoTrue service       |            | false    |
-| `SUPABASE_AUTH_ANON_KEY`         | String | Signed JWT token for `anon` role    |            | false    |
-| `SUPABASE_AUTH_SERVICE_ROLE_KEY` | String | Signed JWT token for `service_role` |            | false    |
+- `fly.Machine.listMachines()`
+- `fly.Machine.getMachine()`
+- `fly.Machine.createMachine()`
+- `fly.Machine.updateMachine()`
+- `fly.Machine.startMachine()`
+- `fly.Machine.stopMachine()`
+- `fly.Machine.deleteMachine()`
+- `fly.Machine.restartMachine()`
+- `fly.Machine.signalMachine()`
+- `fly.Machine.waitMachine()`
+- `fly.Machine.cordonMachine()`
+- `fly.Machine.uncordonMachine()`
+- `fly.Machine.listEvents()`
+- `fly.Machine.listVersions()`
+- `fly.Machine.listProcesses()`
+- `fly.Machine.getLease()`
+- `fly.Machine.acquireLease()`
+
+**Networks**
+
+- `fly.Network.allocateIpAddress()`
+- `fly.Network.releaseIpAddress()`
+
+**Organizations**
+
+- `fly.Organization.getOrganization()`
+
+**Secrets**
+
+- `fly.Secret.setSecrets()`
+- `fly.Secret.unsetSecrets()`
+
+**Volumes**
+
+- `fly.Volume.listVolumes()`
+- `fly.Volume.getVolume()`
+- `fly.Volume.createVolume()`
+- `fly.Volume.deleteVolume()`
+- `fly.Volume.extendVolume()`
+- `fly.Volume.listSnapshots()`
+
+**TODO**
+
+- [ ] `fly.Machine.execMachine()`
+- [ ] `fly.Machine.releaseLease()`
+- [ ] `fly.Machine.getMetadata()`
+- [ ] `fly.Machine.updateMetadata()`
+- [ ] `fly.Machine.deleteMetadata()`
+
+## License
+
+MIT
