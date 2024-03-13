@@ -1,6 +1,6 @@
 import Client from '../client'
 
-interface RegionResponse {
+export interface RegionResponse {
   name: string
   code: string
   latitude: number
@@ -9,29 +9,23 @@ interface RegionResponse {
   requiresPaidPlan: boolean
 }
 
-interface PlatformResponse {
-  requestRegion: string
-  regions: RegionResponse[]
+export interface GetNearestRegionsOutput {
+  nearestRegion: RegionResponse
 }
 
-export interface GetRegionsOutput {
-  platform: PlatformResponse
-}
-
-// Ref: https://github.com/superfly/flyctl/blob/master/api/resource_platform.go
-const getRegionsQuery = `query {
-  platform {
-    requestRegion
-    regions {
-      name
-      code
-      latitude
-      longitude
-      gatewayAvailable
-      requiresPaidPlan
-    }
+// Ref: https://github.com/superfly/flyctl/blob/master/api/resource_regions.go
+const getNearestRegionsQuery = `
+query {
+  nearestRegion {
+    name
+    code
+    latitude
+    longitude
+    gatewayAvailable
+    requiresPaidPlan
   }
-}`
+}
+`
 
 export class Regions {
   private client: Client
@@ -40,9 +34,9 @@ export class Regions {
     this.client = client
   }
 
-  async getRegions(): Promise<GetRegionsOutput> {
+  async getNearestRegion(): Promise<GetNearestRegionsOutput> {
     return this.client.gqlPostOrThrow({
-      query: getRegionsQuery,
+      query: getNearestRegionsQuery,
       variables: {},
     })
   }
